@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Solar Panel Analysis</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+    <style>
+        :root {
+            /* Light mode colors */
+            --bg-color: #e6f0ff;
+            --text-color: #2a3a4a;
+            --container-bg: #f5f9ff;
+            --input-bg: #ffffff;
+            --input-border: #c0d0e0;
+            --button-bg: #4a90e2;
+            --button-hover: #3a80d2;
+            --label-color: #4a6a8a;
+            --tab-bg: #d0e0ff;
+            --tab-active: #e6f0ff;
+            --tab-border: #a8c6ff;
+            --advanced-bg: #e6f0ff;
+            --advanced-border: #a8c6ff;
+            --toggle-bg: #d0e0ff;
+            --toggle-border: #a8c6ff;
+            --file-upload-bg: #e6f0ff;
+            --file-upload-border: #a8c6ff;
+            --map-bg: #f5f9ff;
+            --map-border: #a8c6ff;
+            --overlay-color: rgba(100, 150, 200, 0.3);
+            --title-color: #2a3a4a;
+            --input-bg-disabled: rgba(200, 200, 200, 0.2);
+            --placeholder-color: #888;
+            --background-image: url('https://us.solarpanelsnetwork.com/blog/wp-content/uploads/2022/07/Floating-Solar-Panels-Platform.jpg');
+        }
+
+        /* Dark mode colors */
+        .dark-mode {
+            --bg-color: #0a1e32;
+            --text-color: #e0f0ff;
+            --container-bg: rgba(20, 40, 60, 0.9);
+            --input-bg: rgba(15, 35, 55, 0.8);
+            --input-border: rgba(42, 58, 74, 0.8);
+            --button-bg: rgba(58, 110, 165, 0.9);
+            --button-hover: rgba(74, 124, 181, 0.9);
+            --label-color: #7fb3d5;
+            --tab-bg: rgba(20, 40, 60, 0.95);
+            --tab-active: rgba(74, 124, 181, 0.9);
+            --tab-border: rgba(74, 144, 226, 0.3);
+            --advanced-bg: rgba(26, 38, 52, 0.8);
+            --advanced-border: rgba(26, 38, 52, 0.8);
+            --toggle-bg: rgba(42, 58, 74, 0.8);
+            --toggle-border: rgba(26, 38, 52, 0.8);
+            --file-upload-bg: transparent;
+            --file-upload-border: rgba(74, 144, 226, 0.5);
+            --map-bg: rgba(15, 35, 55, 0.9);
+            --map-border: rgba(74, 144, 226, 0.3);
+            --overlay-color: rgba(10, 30, 50, 0.85);
+            --title-color: #a8e6ff;
+            --input-bg-disabled: rgba(42, 58, 74, 0.5);
+            --placeholder-color: #aaa;
+            --background-image: url('https://www.solarpowerworldonline.com/wp-content/uploads/2019/10/Floating-solar-array-NREL.jpg');
+        }
+
+        /* Base Styles */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            overflow-x: hidden;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 16px;
+            margin: 10px 0;
+            color: var(--title-color);
+        }
+
+        /* Background elements */
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -2;
+            background-image: var(--background-image);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+
+        .blue-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--overlay-color);
+            z-index: -1;
+            transition: all 0.3s ease;
+        }
+
+        /* Main layout container */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            gap: 10px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Map section */
+        .map-section {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--container-bg);
+            border-radius: 6px;
+            border: 1px solid var(--map-border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            height: calc(100vh - 20px);
+        }
+
+        .map-container {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: var(--map-bg);
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background-color: var(--map-bg);
+            transition: all 0.3s ease;
+        }
+
+        /* Form section */
+        .form-section {
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--container-bg);
+            border-radius: 6px;
+            border: 1px solid var(--map-border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            height: calc(100vh - 20px);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background-color: var(--tab-bg);
+            border-bottom: 1px solid var(--tab-border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-color);
+            font-weight: 500;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            background-color: var(--tab-active);
+            border-bottom: 3px solid var(--button-bg);
+        }
+
+        .tab:hover {
+            background-color: var(--tab-active);
+        }
+
+        .tab-content {
+            padding: 15px;
+            overflow-y: auto;
+            height: calc(100% - 41px);
+            background-color: var(--container-bg);
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--label-color);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            box-sizing: border-box;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        input:disabled {
+            background-color: var(--input-bg-disabled);
+            color: var(--placeholder-color);
+            cursor: not-allowed;
+        }
+
+        input::placeholder {
+            color: var(--placeholder-color);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--button-bg);
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--button-bg);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background-color: var(--button-hover);
+        }
+
+        /* Location Selection */
+        .location-method {
+            display: flex;
+            margin-bottom: 12px;
+        }
+
+        .location-method button {
+            flex: 1;
+            padding: 8px;
+            margin: 0;
+            border-radius: 0;
+            background-color: var(--toggle-bg);
+            color: var(--text-color);
+            font-size: 12px;
+        }
+
+        .location-method button:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .location-method button:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+
+        .location-method button.active {
+            background-color: var(--button-bg);
+            color: white;
+        }
+
+        /* File Upload */
+        .file-upload {
+            margin-top: 12px;
+        }
+
+        .file-upload-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            border: 1px dashed var(--file-upload-border);
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            background-color: var(--file-upload-bg);
+            color: var(--label-color);
+            font-size: 12px;
+        }
+
+        .file-name {
+            font-size: 11px;
+            color: var(--label-color);
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Advanced Options */
+        .options-toggle {
+            width: 100%;
+            padding: 8px;
+            background-color: var(--toggle-bg);
+            border: 1px solid var(--toggle-border);
+            border-radius: 4px;
+            color: var(--text-color);
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 10px;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .advanced-options {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+            padding: 8px;
+            border: 1px solid var(--advanced-border);
+            border-radius: 4px;
+            background-color: var(--advanced-bg);
+        }
+
+        /* Map Controls */
+        .leaflet-control {
+            background: var(--container-bg) !important;
+            border: 1px solid var(--input-border) !important;
+            border-radius: 4px !important;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .leaflet-bar a {
+            background-color: var(--container-bg) !important;
+            border-bottom: 1px solid var(--input-border) !important;
+            color: var(--label-color) !important;
+        }
+
+        /* Selected Location Marker */
+        .selected-location-marker {
+            background-color: #4a90e2;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.3);
+        }
+
+        .selected-location-marker::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background-color: #ffffff;
+            border-radius: 50%;
+        }
+
+        /* Dark Mode Toggle */
+        .dark-mode-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: var(--container-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 16px;
+            padding: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode-toggle span {
+            font-size: 14px;
+            padding: 2px 4px;
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            margin: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--toggle-bg);
+            border: 1px solid var(--toggle-border);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 3px;
+            background-color: var(--button-bg);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--button-bg);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+            background-color: var(--container-bg);
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            color: var(--label-color);
+            white-space: nowrap;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .map-section, .form-section {
+                width: 100%;
+                height: 400px;
+            }
+            
+            .form-section {
+                height: auto;
+                max-height: 500px;
+            }
+            
+            .tab-content {
+                height: auto;
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingIndicator" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.7); color: white; padding: 20px; border-radius: 5px; z-index: 1000; display: none;">
+        Loading...
+    </div>
+
+    <!-- Main content -->
+    <div class="main-container">
+        <!-- Map section -->
+        <div class="map-section">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- Form section -->
+        <form id="simulation-form" method="post" action="/submit" enctype="multipart/form-data">
+            <div class="form-section">
+                <h1>Have a potential project? <br> Test out your FPV system</h1>
+                <div class="tabs">
+                    <div class="tab active" data-tab="system">System Parameters</div>
+                    <div class="tab" data-tab="economic">Economic Parameters</div>
+                </div>
+                
+                <div class="tab-content">
+                    <!-- System Parameters Tab -->
+                    <div id="system-tab" class="tab-pane active">
+                        <div class="form-group">
+                            <label>Location Selection Method</label>
+                            <div class="location-method">
+                                <button type="button" id="coordinates-btn" class="active">Coordinates</button>
+                                <button type="button" id="country-btn">Country</button>
+                            </div>
+                        </div>
+
+                        <!-- Coordinates Input -->
+                        <div id="coordinates-input">
+                            <div class="form-group">
+                                <label for="longitude">Longitude</label>
+                                <input type="text" id="longitude" name="longitude" placeholder="Enter longitude">
+                            </div>
+                            <div class="form-group">
+                                <label for="latitude">Latitude</label>
+                                <input type="text" id="latitude" name="latitude" placeholder="Enter latitude">
+                            </div>
+                        </div>
+
+                        <!-- Country Input -->
+                        <div id="country-input" style="display: none;">
+                            <div class="form-group">
+                                <label for="country">Country</label>
+                                <input type="text" id="Country1" name="Country1" placeholder="Enter country">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="system-size">System Size (kW)</label>
+                            <input type="number" id="system-size" name="system-size" value = 100 min="0.1" step="0.1" placeholder="100">
+                        </div>
+
+                        <div class="toggle-container">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="use-default-system" checked>
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="toggle-label">Use default values</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tilt-angle">Tilt Angle (degrees)</label>
+                            <input type="number" id="tilt-angle" name="tilt-angle" value="10" min="0" max="90" step="0.1" disabled>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="years">Years of Expected Usage</label>
+                            <input type="number" id="years" name="years" value="25" min="1" max="50" disabled>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="system-loss">System Loss (%)</label>
+                            <input type="number" id="system-loss" name="system-loss" value="14" min="0" max="100" step="0.1" disabled>
+                        </div>
+
+                        <button type="button" class="options-toggle" id="toggle-advanced">
+                            <span>Advanced System Options</span>
+                            <span class="toggle-icon">▼</span>
+                        </button>
+                        <div class="advanced-options" id="advanced-options" style="display: none;">
+                            <div class="form-group">
+                                <label for="panel-efficiency">Panel Efficiency (%)</label>
+                                <input type="number" id="panel-efficiency" name="panel-efficiency" value="10" min="1" max="100" step="0.1" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="degradation-rate">Degradation Rate (%/year)</label>
+                                <input type="number" id="degradation-rate" name="degradation-rate" value="0.75" min="0" max="5" step="0.01" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="azimuth">Azimuth Angle (degrees)</label>
+                                <input type="number" id="azimuth" name="azimuth" value="180" min="0" max="360" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="Uv">Uv Coefficient</label>
+                                <input type="number" id="Uv" name="Uv" value="0" step="0.01" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="Uc">Uc Coefficient</label>
+                                <input type="number" id="Uc" name="Uc" value="56" step="0.01" disabled>
+                            </div>
+                        </div>
+
+                        <div class="file-upload">
+                            <label>Upload Irradiance Data (Excel)</label>
+                            <label for="irradiance-data" class="file-upload-label">
+                                <span>Choose file...</span>
+                                <span>📁</span>
+                            </label>
+                            <input type="file" id="irradiance-data" name="irradiance-data" class="file-input" accept=".xlsx,.xls">
+                            <div id="irradiance-file-name" class="file-name">No file selected</div>
+                        </div>
+
+                        <button type="submit">Run Simulation</button>
+                    </div>
+
+                    <!-- Economic Parameters Tab -->
+                    <div id="economic-tab" class="tab-pane">
+                        <div class="toggle-container">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="use-default-economic" checked>
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="toggle-label">Use default values</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="day_ahead_avg_price">Day Ahead Average Price (€/MWh)</label>
+                            <input type="number" id="day_ahead_avg_price" name="day_ahead_avg_price" value="0.15" min="0" max="1000" step="0.01" disabled>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="capex">CAPEX (€/kW)</label>
+                            <input type="number" id="capex" name="capex" value="1200" min="0" step="1" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="opex">OPEX (€/kW/year)</label>
+                            <input type="number" id="opex" name="opex" value="20" min="0" step="0.1" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="discount-rate">Discount Rate (WACC, %)</label>
+                            <input type="number" id="discount-rate" name="discount-rate" value="6.5" min="0" max="20" step="0.1" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="corp_tax">Corporate Tax (%)</label>
+                            <input type="number" id="corp_tax" name="corp_tax" value="20" min="0" max="100" step="0.1" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="inflation-rate">Inflation Rate (%)</label>
+                            <input type="number" id="inflation_rate" name="inflation_rate" value="2.5" min="0" max="20" step="0.1" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="inflation-rate">Capex Subsidies (%)</label>
+                            <input type="number" id="tax_subsidies" name="tax_subsidies" value="0" min="0" max="100" step="0.1" disabled>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="inflation-rate">Depreciation Years</label>
+                            <input type="number" id="degradation_years" name="degradation_years" value="5" min="0" max="30" step="1" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="inflation-rate">Feed-in Bonus Tariffs (e/MWh)</label>
+                            <input type="number" id="feed_in_bonus" name="feed_in_bonus" value="0" min="0" max="1000" step="1" disabled>
+                            <div class="form-group">
+
+                        <button type="submit">Run Simulation</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+    <script>
+    let map;
+    let selectedLocationLayer = null;
+    let currentTileLayer = null;
+
+    // Default values
+    const systemDefaults = {
+        'tilt-angle': 10,
+        'years': 25,
+        'system-loss': 14,
+        'panel-efficiency': 10,
+        'degradation-rate': 0.75,
+        'azimuth': 180,
+        'Uv': 0,
+        'Uc': 56
+    };
+
+    const economicDefaults = {
+        'capex': 1200,
+        'opex': 20,
+        'discount-rate': 6.5,
+        'day_ahead_avg_price': 0.15,
+        'corp_tax': 20,
+        'inflation_rate': 2.5
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize map
+        initializeMap();
+
+        // Set up all event listeners
+        setupEventListeners();
+    });
+
+    function initializeMap() {
+        try {
+            // Initialize the map with restricted bounds
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: false,
+                maxBounds: L.latLngBounds(
+                    L.latLng(25, -15),  // SW corner
+                    L.latLng(75, 45)    // NE corner
+                ),
+                maxBoundsViscosity: 1.0  // Strict bounds enforcement
+            }).setView([50, 10], 4);
+
+            // Add initial tile layer
+            currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Custom zoom control
+            L.control.zoom({
+                position: 'topright'
+            }).addTo(map);
+
+            // Handle map clicks to select location and fetch economic data
+            map.on('click', async function(e) {
+                const lng = e.latlng.lng.toFixed(6);
+                const lat = e.latlng.lat.toFixed(6);
+                document.getElementById('longitude').value = lng;
+                document.getElementById('latitude').value = lat;
+                
+                document.getElementById('coordinates-btn').click();
+                
+                if (selectedLocationLayer) {
+                    map.removeLayer(selectedLocationLayer);
+                }
+                
+                selectedLocationLayer = L.marker(e.latlng, {
+                    icon: L.divIcon({
+                        className: 'selected-location-marker',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    }),
+                    zIndexOffset: 1000
+                }).addTo(map);
+                
+                map.panTo(e.latlng);
+                
+                try {
+                    showLoading('Fetching economic data...');
+                    
+                    const response = await fetch(`/get_economic_data?longitude=${lng}&latitude=${lat}`);
+                    const economicData = await response.json();
+                    
+                    if (response.ok) {
+                        updateEconomicInputs(economicData);
+                    } else {
+                        console.error('Error fetching economic data:', economicData.error);
+                        alert('Could not fetch economic data for this location. Using defaults.');
+                    }
+                } catch (error) {
+                    console.error('Error fetching economic data:', error);
+                    alert('Error fetching economic data. Using defaults.');
+                } finally {
+                    hideLoading();
+                }
+            });
+
+        } catch (error) {
+            console.error('Map initialization error:', error);
+            document.getElementById('map').innerHTML = 
+                '<div style="padding: 20px; color: red;">Could not load map. Please ensure you are viewing this through a web server.</div>';
+        }
+    }
+
+    function updateEconomicInputs(data) {
+        const inputs = {
+            'capex': data.capex || economicDefaults.capex,
+            'opex': data.opex || economicDefaults.opex,
+            'discount-rate': data.WACC || economicDefaults['discount-rate'],
+            'day_ahead_avg_price': data.day_ahead_avg_price || 0.15,
+            'corp_tax': data.CorpTax || 20,
+            'inflation_rate': data.inflation_rate || economicDefaults['inflation-rate']
+        };
+        
+        Object.keys(inputs).forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = inputs[id];
+            }
+        });
+        
+        if (data.country) {
+            document.getElementById('Country1').value = data.country;
+        }
+    }
+
+    function showLoading(message) {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        loadingIndicator.textContent = message;
+        loadingIndicator.style.display = 'block';
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+
+    function setupEventListeners() {
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                
+                this.classList.add('active');
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+            });
+        });
+
+        // Toggle between location input methods
+        function setActiveMethod(activeBtnId) {
+            document.getElementById('coordinates-btn').classList.remove('active');
+            document.getElementById('country-btn').classList.remove('active');
+            
+            document.getElementById('coordinates-input').style.display = 'none';
+            document.getElementById('country-input').style.display = 'none';
+            
+            document.getElementById(activeBtnId).classList.add('active');
+            
+            if (activeBtnId === 'coordinates-btn') {
+                document.getElementById('coordinates-input').style.display = 'block';
+                document.getElementById('Country1').required = false;
+            } else {
+                document.getElementById('country-input').style.display = 'block';
+                document.getElementById('Country1').required = true;
+                
+                if (selectedLocationLayer) {
+                    map.removeLayer(selectedLocationLayer);
+                    selectedLocationLayer = null;
+                }
+            }
+        }
+
+        document.getElementById('coordinates-btn').addEventListener('click', function() {
+            setActiveMethod('coordinates-btn');
+        });
+
+        document.getElementById('country-btn').addEventListener('click', function() {
+            setActiveMethod('country-btn');
+        });
+
+        // Toggle advanced options
+        document.getElementById('toggle-advanced').addEventListener('click', function() {
+            const options = document.getElementById('advanced-options');
+            const icon = this.querySelector('.toggle-icon');
+            if (options.style.display === 'none') {
+                options.style.display = 'block';
+                icon.textContent = '▲';
+            } else {
+                options.style.display = 'none';
+                icon.textContent = '▼';
+            }
+        });
+
+        // File upload display
+        document.getElementById('irradiance-data').addEventListener('change', function() {
+            const fileName = this.files.length > 0 ? this.files[0].name : 'No file selected';
+            document.getElementById('irradiance-file-name').textContent = fileName;
+        });
+
+        // Function to toggle input fields based on default values checkbox
+        function toggleInputs(checkboxId, defaults) {
+            const checkbox = document.getElementById(checkboxId);
+            const inputs = Object.keys(defaults).map(key => document.getElementById(key));
+            
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    Object.keys(defaults).forEach(key => {
+                        const element = document.getElementById(key);
+                        if (element) {
+                            element.value = defaults[key];
+                            element.disabled = true;
+                        }
+                    });
+                } else {
+                    inputs.forEach(input => {
+                        if (input) input.disabled = false;
+                    });
+                }
+            });
+            
+            if (checkbox.checked) {
+                inputs.forEach(input => {
+                    if (input) input.disabled = true;
+                });
+            }
+        }
+
+        // Set up toggles for system and economic defaults
+        toggleInputs('use-default-system', systemDefaults);
+        toggleInputs('use-default-economic', economicDefaults);
+
+        // Form submission
+        document.getElementById('simulation-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            showLoading('Submitting form...');
+            
+            try {
+                const formData = new FormData(this);
+                
+                // Add the active location method
+                const activeMethod = document.querySelector('.location-method button.active').id;
+                formData.append('location_method', activeMethod.replace('-btn', ''));
+                
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`Expected JSON but got: ${text.substring(0, 100)}...`);
+                }
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to submit form');
+                }
+                
+                if (result.redirect) {
+                    window.location.href = result.redirect;
+                } else if (result.results) {
+                    window.location.href = '/output';
+                }
+                
+            } catch (error) {
+                console.error('Submission error:', error);
+                alert('Error: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+    }
+    </script>
+</body>
+</html>
