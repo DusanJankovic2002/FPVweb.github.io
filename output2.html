@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Solar Panel Results</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+    <style>
+        :root {
+            /* Light mode colors */
+            --bg-color: #e6f0ff;
+            --text-color: #2a3a4a;
+            --container-bg: #f5f9ff;
+            --input-bg: #ffffff;
+            --input-border: #c0d0e0;
+            --button-bg: #4a90e2;
+            --button-hover: #3a80d2;
+            --label-color: #4a6a8a;
+            --tab-bg: #d0e0ff;
+            --tab-active: #e6f0ff;
+            --tab-border: #a8c6ff;
+            --advanced-bg: #e6f0ff;
+            --advanced-border: #a8c6ff;
+            --toggle-bg: #d0e0ff;
+            --toggle-border: #a8c6ff;
+            --file-upload-bg: #e6f0ff;
+            --file-upload-border: #a8c6ff;
+            --map-bg: #f5f9ff;
+            --map-border: #a8c6ff;
+            --overlay-color: rgba(100, 150, 200, 0.3);
+            --title-color: #2a3a4a;
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0, 0, 0, 0.1);
+            --card-border: #d0e0ff;
+            --highlight-color: #2a6fba;
+        }
+
+        /* Dark mode colors */
+        .dark-mode {
+            --bg-color: #0a1e32;
+            --text-color: #e0f0ff;
+            --container-bg: rgba(20, 40, 60, 0.9);
+            --input-bg: rgba(15, 35, 55, 0.8);
+            --input-border: rgba(42, 58, 74, 0.8);
+            --button-bg: rgba(58, 110, 165, 0.9);
+            --button-hover: rgba(74, 124, 181, 0.9);
+            --label-color: #7fb3d5;
+            --tab-bg: rgba(20, 40, 60, 0.95);
+            --tab-active: rgba(74, 124, 181, 0.9);
+            --tab-border: rgba(74, 144, 226, 0.3);
+            --advanced-bg: rgba(26, 38, 52, 0.8);
+            --advanced-border: rgba(26, 38, 52, 0.8);
+            --toggle-bg: rgba(42, 58, 74, 0.8);
+            --toggle-border: rgba(26, 38, 52, 0.8);
+            --file-upload-bg: transparent;
+            --file-upload-border: rgba(74, 144, 226, 0.5);
+            --map-bg: rgba(15, 35, 55, 0.9);
+            --map-border: rgba(74, 144, 226, 0.3);
+            --overlay-color: rgba(10, 30, 50, 0.85);
+            --title-color: #a8e6ff;
+            --card-bg: rgba(20, 40, 60, 0.9);
+            --card-shadow: rgba(0, 0, 0, 0.3);
+            --card-border: rgba(74, 144, 226, 0.3);
+            --highlight-color: #4a90e2;
+        }
+
+        /* Base Styles */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            overflow-x: hidden;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+
+        /* Background elements */
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -2;
+            background-image: url('https://us.solarpanelsnetwork.com/blog/wp-content/uploads/2022/07/Floating-Solar-Panels-Platform.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            opacity: 0.8;
+        }
+
+        .blue-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--overlay-color);
+            z-index: -1;
+            transition: all 0.3s ease;
+        }
+
+        /* Dark mode toggle */
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--container-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 20px;
+            padding: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark-mode-toggle span {
+            font-size: 1.2rem;
+            padding: 5px;
+        }
+
+        .dark-mode-toggle .moon {
+            color: #a8e6ff;
+        }
+
+        .dark-mode-toggle .sun {
+            color: #ffcc00;
+        }
+
+        /* Main layout */
+        .main-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Map section */
+        .map-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            border: 1px solid var(--map-border);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            height: calc(100vh - 40px);
+            position: sticky;
+            top: 20px;
+        }
+
+        .map-container {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: var(--map-bg);
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background-color: var(--map-bg);
+        }
+
+        /* Results section */
+        .results-section {
+            width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            height: calc(100vh - 40px);
+            padding-right: 10px;
+        }
+
+        /* Data cards */
+        .data-card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 15px var(--card-shadow);
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+        }
+
+        .data-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px var(--card-shadow);
+        }
+
+        .data-card h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--title-color);
+            font-weight: 500;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 10px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .data-label {
+            color: var(--label-color);
+            font-size: 14px;
+        }
+
+        .data-value {
+            font-weight: 500;
+            color: var(--highlight-color);
+        }
+
+        .highlight {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--highlight-color);
+        }
+
+        .comparison-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .comparison-item {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            box-shadow: 0 2px 10px var(--card-shadow);
+            border: 1px solid var(--card-border);
+        }
+
+        .comparison-item h3 {
+            margin-top: 0;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--label-color);
+        }
+
+        /* Custom Map Controls */
+        .leaflet-control {
+            background: var(--container-bg) !important;
+            border: 1px solid var(--input-border) !important;
+            border-radius: 6px !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .leaflet-bar a {
+            background-color: var(--container-bg) !important;
+            border-bottom: 1px solid var(--input-border) !important;
+            color: var(--label-color) !important;
+            transition: all 0.2s ease;
+        }
+
+        .leaflet-bar a:hover {
+            background-color: var(--button-hover) !important;
+            color: #ffffff !important;
+        }
+
+        /* Selected Location Marker */
+        .selected-location-marker {
+            background-color: var(--highlight-color);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.3);
+        }
+
+        .selected-location-marker::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background-color: #ffffff;
+            border-radius: 50%;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .map-section, .results-section {
+                width: 100%;
+                height: auto;
+            }
+            
+            .map-section {
+                height: 500px;
+                position: static;
+            }
+            
+            .results-section {
+                overflow-y: visible;
+                padding-right: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .comparison-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Dark mode toggle -->
+    <div class="dark-mode-toggle" id="darkModeToggle">
+        <span class="moon">🌙</span>
+        <span class="sun" style="display: none;">☀️</span>
+    </div>
+
+    <!-- Full-page background elements -->
+    <div class="background-container"></div>
+    <div class="blue-overlay"></div>
+
+    <!-- Main content -->
+    <div class="main-container">
+        <!-- Map section (left) -->
+        <div class="map-section">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- Results section (right) -->
+        <div class="results-section">
+            <!-- System Summary -->
+            <div class="data-card">
+                <h2>System Summary</h2>
+                <div class="data-row">
+                    <span class="data-label">Location:</span>
+                    <span class="data-value">{{ location }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Coordinates:</span>
+                    <span class="data-value">{{ coordinates }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">System Size:</span>
+                    <span class="data-value">{{ system_size }} kW</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Tilt Angle:</span>
+                    <span class="data-value">{{ tilt_angle }}°</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Azimuth:</span>
+                    <span class="data-value">{{ azimuth }}°</span>
+                </div>
+            </div>
+
+            <!-- Energy Production -->
+            <div class="data-card">
+                <h2>Energy Production</h2>
+                <div class="data-row">
+                    <span class="data-label">Annual Energy Yield:</span>
+                    <span class="data-value">{{ yearly_yield }} MWh/kW</span>
+                </div>
+                
+                
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <h3>Your System</h3>
+                        <p class="highlight">{{ your_yield }} MWh</p>
+                        <p class="data-label">Annual Yield</p>
+                    </div>
+                    <div class="comparison-item">
+                        <h3>Regional Avg</h3>
+                        <p class="highlight">{{ regional_avg }} MWh</p>
+                        <p class="data-label">For similar systems</p>
+                    </div>
+                    <div class="comparison-item">
+                        <h3>Difference</h3>
+                        <p class="highlight">{{ yield_difference }}%</p>
+                        <p class="data-label">Efficiency</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Metrics -->
+            <div class="data-card">
+                <h2>Financial Metrics</h2>
+                <div class="data-row">
+                    <span class="data-label">LCOE (Levelized Cost):</span>
+                    <span class="data-value">€{{ lcoe }}/kWh</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">NPV (Net Present Value):</span>
+                    <span class="data-value">€{{ npv }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Payback Period:</span>
+                    <span class="data-value">{{ payback }} years</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">IRR (Internal Rate):</span>
+                    <span class="data-value">{{ irr }}%</span>
+                </div>
+            </div>
+
+            <!-- Technology Comparison -->
+            <div class="data-card">
+                <h2>Technology Comparison</h2>
+                <div class="data-row">
+                    <span class="data-label">Floating Solar LCOE:</span>
+                    <span class="data-value">€{{ floating_lcoe }}/kWh</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Ground-mounted Solar:</span>
+                    <span class="data-value">€{{ ground_lcoe }}/kWh</span>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+    
+    <script>
+        // Dark mode toggle functionality
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const body = document.body;
+        const moonIcon = document.querySelector('.moon');
+        const sunIcon = document.querySelector('.sun');
+
+        // Check for saved user preference or use dark mode by default
+        const savedMode = localStorage.getItem('darkMode');
+        if (savedMode === 'light') {
+            body.classList.remove('dark-mode');
+            moonIcon.style.display = 'none';
+            sunIcon.style.display = 'inline';
+        } else {
+            body.classList.add('dark-mode');
+            moonIcon.style.display = 'inline';
+            sunIcon.style.display = 'none';
+        }
+
+        darkModeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            if (body.classList.contains('dark-mode')) {
+                moonIcon.style.display = 'inline';
+                sunIcon.style.display = 'none';
+                localStorage.setItem('darkMode', 'dark');
+                // Switch to dark map tiles
+                if (map) {
+                    map.eachLayer(layer => {
+                        if (layer._url && layer._url.includes('light_all')) {
+                            map.removeLayer(layer);
+                        }
+                    });
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                        subdomains: 'abcd',
+                        maxZoom: 19
+                    }).addTo(map);
+                }
+            } else {
+                moonIcon.style.display = 'none';
+                sunIcon.style.display = 'inline';
+                localStorage.setItem('darkMode', 'light');
+                // Switch to light map tiles
+                if (map) {
+                    map.eachLayer(layer => {
+                        if (layer._url && layer._url.includes('dark_all')) {
+                            map.removeLayer(layer);
+                        }
+                    });
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                        subdomains: 'abcd',
+                        maxZoom: 19
+                    }).addTo(map);
+                }
+            }
+        });
+
+        // Initialize map variables
+        let map;
+        let selectedLocationLayer = null;
+
+        // Initialize the map when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Initialize the map centered on the selected location
+                map = L.map('map', {
+                    zoomControl: false,
+                    attributionControl: false
+                }).setView([{{ map_lat }}, {{ map_lng }}], 8);
+
+                // Add tile layer based on current mode
+                const tileUrl = body.classList.contains('dark-mode') ? 
+                    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' :
+                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                
+                L.tileLayer(tileUrl, {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 19
+                }).addTo(map);
+
+                // Custom zoom control
+                L.control.zoom({
+                    position: 'topright'
+                }).addTo(map);
+
+                // Custom attribution control
+                L.control.attribution({
+                    position: 'bottomright',
+                    prefix: '<a href="https://leafletjs.com/" title="A JavaScript library for interactive maps">Leaflet</a>'
+                }).addTo(map);
+
+                // Create a custom marker icon for selected location
+                const SelectedLocationIcon = L.divIcon({
+                    className: 'selected-location-marker',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                // Add marker for the selected location
+                selectedLocationLayer = L.marker([{{ map_lat }}, {{ map_lng }}], {
+                    icon: SelectedLocationIcon,
+                    zIndexOffset: 1000
+                }).addTo(map);
+
+                // Add popup with location info
+                selectedLocationLayer.bindPopup(`
+                    <div style="text-align:center;">
+                        <h4 style="margin:0 0 5px;color:var(--title-color);">{{ location }}</h4>
+                        <p style="margin:0;color:var(--label-color);">Floating Solar Installation</p>
+                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--card-border);">
+                            <p style="margin:5px 0;color:var(--label-color);">System Size: <strong>{{ system_size }} kW</strong></p>
+                            <p style="margin:5px 0;color:var(--label-color);">Annual Yield: <strong>{{ yearly_yield }} MWh</strong></p>
+                        </div>
+                    </div>
+                `).openPopup();
+
+            } catch (error) {
+                console.error('Map initialization error:', error);
+                document.getElementById('map').innerHTML = 
+                    '<div style="padding:20px;color:red;">Could not load map. Please ensure you are viewing this through a web server.</div>';
+            }
+        });
+    </script>
+</body>
+</html>
